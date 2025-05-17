@@ -333,6 +333,14 @@ public class IngestionDelayTrackerTest {
     Assert.assertEquals(ingestionDelayTracker.getPartitionIngestionUpstreamOffset(partition0), 200);
     Assert.assertEquals(ingestionDelayTracker.getPartitionIngestionConsumingOffset(partition0), 150);
 
+    // Update without latest offset should not change lag metrics
+    msgOffset0 = new LongMsgOffset(180);
+    ingestionDelayTracker.updateIngestionMetrics(segment0, partition0, Long.MIN_VALUE, Long.MIN_VALUE, msgOffset0,
+        null);
+    Assert.assertEquals(ingestionDelayTracker.getPartitionIngestionOffsetLag(partition0), 20);
+    Assert.assertEquals(ingestionDelayTracker.getPartitionIngestionUpstreamOffset(partition0), 200);
+    Assert.assertEquals(ingestionDelayTracker.getPartitionIngestionConsumingOffset(partition0), 180);
+
     ingestionDelayTracker.shutdown();
   }
 }

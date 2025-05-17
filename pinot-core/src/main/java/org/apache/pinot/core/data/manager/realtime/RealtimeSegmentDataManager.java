@@ -260,6 +260,9 @@ public class RealtimeSegmentDataManager extends SegmentDataManager {
   private final PartitionUpsertMetadataManager _partitionUpsertMetadataManager;
   private final PartitionDedupMetadataManager _partitionDedupMetadataManager;
   private final BooleanSupplier _isReadyToConsumeData;
+  private final boolean _trackOffsetLag;
+  private final long _offsetLagMetricUpdatePeriodMs;
+  private final AtomicLong _lastOffsetLagMetricUpdateTimeMs = new AtomicLong(0L);
   private final MutableSegmentImpl _realtimeSegment;
   private volatile StreamPartitionMsgOffset _currentOffset; // Next offset to be consumed
   private volatile State _state;
@@ -1615,6 +1618,8 @@ public class RealtimeSegmentDataManager extends SegmentDataManager {
     _trackFilteredMessageOffsets = ingestionConfig != null && ingestionConfig.getStreamIngestionConfig() != null
         && ingestionConfig.getStreamIngestionConfig().isTrackFilteredMessageOffsets();
     _parallelSegmentConsumptionPolicy = getParallelConsumptionPolicy();
+    _trackOffsetLag = indexLoadingConfig.isRealtimeOffsetLagMetricEnabled();
+    _offsetLagMetricUpdatePeriodMs = indexLoadingConfig.getRealtimeOffsetLagMetricUpdatePeriodMs();
 
     String timeColumnName = tableConfig.getValidationConfig().getTimeColumnName();
     // TODO Validate configs
@@ -1965,14 +1970,21 @@ public class RealtimeSegmentDataManager extends SegmentDataManager {
 
   private void updateIngestionMetrics(RowMetadata metadata) {
     if (metadata != null) {
-      try {
-        StreamPartitionMsgOffset latestOffset = fetchLatestStreamOffset(5000, true);
-        _realtimeTableDataManager.updateIngestionMetrics(_segmentNameStr, _partitionGroupId,
-            metadata.getRecordIngestionTimeMs(), metadata.getFirstStreamRecordIngestionTimeMs(), metadata.getOffset(),
-            latestOffset);
-      } catch (Exception e) {
-        _segmentLogger.warn("Failed to fetch latest offset for updating ingestion delay", e);
+      StreamPartitionMsgOffset latestOffset = null;
+      if (_trackOffsetLag) {
+        long now = System.currentTimeMillis();
+        if (now - _lastOffsetLagMetricUpdateTimeMs.get() >= _offsetLagMetricUpdatePeriodMs) {
+          try {
+            latestOffset = fetchLatestStreamOffset(5000, true);
+          } catch (Exception e) {
+            _segmentLogger.warn("Failed to fetch latest offset for updating ingestion delay", e);
+          }
+          _lastOffsetLagMetricUpdateTimeMs.set(now);
+        }
       }
+      _realtimeTableDataManager.updateIngestionMetrics(_segmentNameStr, _partitionGroupId,
+          metadata.getRecordIngestionTimeMs(), metadata.getFirstStreamRecordIngestionTimeMs(), metadata.getOffset(),
+          latestOffset);
     }
   }
 

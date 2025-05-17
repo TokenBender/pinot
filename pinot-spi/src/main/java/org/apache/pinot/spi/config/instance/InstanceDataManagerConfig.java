@@ -86,4 +86,18 @@ public interface InstanceDataManagerConfig {
   Map<String, Map<String, String>> getTierConfigs();
 
   boolean isUploadSegmentToDeepStore();
+
+  /**
+   * Returns whether realtime ingestion offset lag metric is enabled.
+   */
+  default boolean isRealtimeOffsetLagMetricEnabled() {
+    return true;
+  }
+
+  /**
+   * Returns the update period for realtime ingestion offset lag metric in milliseconds.
+   */
+  default long getRealtimeOffsetLagMetricUpdatePeriodMs() {
+    return 60_000L;
+  }
 }

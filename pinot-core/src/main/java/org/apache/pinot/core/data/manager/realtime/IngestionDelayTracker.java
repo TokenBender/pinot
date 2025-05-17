@@ -276,6 +276,7 @@ public class IngestionDelayTracker {
         // Do not update the metrics for the segment that is marked to be ignored.
         return v;
       }
+
       if (v == null) {
         // Add metric when we start tracking a partition. Only publish the metric if supported by the stream.
         if (ingestionTimeMs > 0) {
@@ -291,18 +292,32 @@ public class IngestionDelayTracker {
           _serverMetrics.setOrUpdatePartitionGauge(_metricName, partitionId, ServerGauge.REALTIME_INGESTION_OFFSET_LAG,
               () -> getPartitionIngestionOffsetLag(partitionId));
         }
-
         if (currentOffset != null) {
           _serverMetrics.setOrUpdatePartitionGauge(_metricName, partitionId,
               ServerGauge.REALTIME_INGESTION_CONSUMING_OFFSET, () -> getPartitionIngestionConsumingOffset(partitionId));
         }
-
         if (latestOffset != null) {
           _serverMetrics.setOrUpdatePartitionGauge(_metricName, partitionId,
               ServerGauge.REALTIME_INGESTION_UPSTREAM_OFFSET, () -> getPartitionIngestionUpstreamOffset(partitionId));
         }
+      } else {
+        // Install metrics if they were not present before
+        if (v._currentOffset == null && v._latestOffset == null && currentOffset != null && latestOffset != null) {
+          _serverMetrics.setOrUpdatePartitionGauge(_metricName, partitionId, ServerGauge.REALTIME_INGESTION_OFFSET_LAG,
+              () -> getPartitionIngestionOffsetLag(partitionId));
+          _serverMetrics.setOrUpdatePartitionGauge(_metricName, partitionId,
+              ServerGauge.REALTIME_INGESTION_CONSUMING_OFFSET, () -> getPartitionIngestionConsumingOffset(partitionId));
+          _serverMetrics.setOrUpdatePartitionGauge(_metricName, partitionId,
+              ServerGauge.REALTIME_INGESTION_UPSTREAM_OFFSET, () -> getPartitionIngestionUpstreamOffset(partitionId));
+        }
       }
-      return new IngestionInfo(ingestionTimeMs, firstStreamIngestionTimeMs, currentOffset, latestOffset);
+
+      long newIngestionTime = ingestionTimeMs >= 0 ? ingestionTimeMs : (v != null ? v._ingestionTimeMs : ingestionTimeMs);
+      long newFirstStreamIngestionTime = firstStreamIngestionTimeMs >= 0 ? firstStreamIngestionTimeMs
+          : (v != null ? v._firstStreamIngestionTimeMs : firstStreamIngestionTimeMs);
+      StreamPartitionMsgOffset newCurrentOffset = currentOffset != null ? currentOffset : (v != null ? v._currentOffset : null);
+      StreamPartitionMsgOffset newLatestOffset = latestOffset != null ? latestOffset : (v != null ? v._latestOffset : null);
+      return new IngestionInfo(newIngestionTime, newFirstStreamIngestionTime, newCurrentOffset, newLatestOffset);
     });
 
     // If we are consuming we do not need to track this partition for removal.
