@@ -74,6 +74,8 @@ public class IndexLoadingConfig {
   private String _segmentStoreURI;
   private String _segmentDirectoryLoader;
   private Map<String, Map<String, String>> _instanceTierConfigs;
+  private boolean _realtimeOffsetLagMetricEnabled = true;
+  private long _realtimeOffsetLagMetricUpdatePeriodMs = 60_000L;
 
   // Initialized by table config and schema
   private List<String> _sortedColumns = Collections.emptyList();
@@ -164,6 +166,9 @@ public class IndexLoadingConfig {
 
     Map<String, Map<String, String>> tierConfigs = _instanceDataManagerConfig.getTierConfigs();
     _instanceTierConfigs = tierConfigs != null ? tierConfigs : Map.of();
+
+    _realtimeOffsetLagMetricEnabled = _instanceDataManagerConfig.isRealtimeOffsetLagMetricEnabled();
+    _realtimeOffsetLagMetricUpdatePeriodMs = _instanceDataManagerConfig.getRealtimeOffsetLagMetricUpdatePeriodMs();
   }
 
   private void extractFromTableConfigAndSchema() {
@@ -300,6 +305,14 @@ public class IndexLoadingConfig {
   public String getSegmentDirectoryLoader() {
     return StringUtils.isNotBlank(_segmentDirectoryLoader) ? _segmentDirectoryLoader
         : SegmentDirectoryLoaderRegistry.DEFAULT_SEGMENT_DIRECTORY_LOADER_NAME;
+  }
+
+  public boolean isRealtimeOffsetLagMetricEnabled() {
+    return _realtimeOffsetLagMetricEnabled;
+  }
+
+  public long getRealtimeOffsetLagMetricUpdatePeriodMs() {
+    return _realtimeOffsetLagMetricUpdatePeriodMs;
   }
 
   public PinotConfiguration getSegmentDirectoryConfigs() {

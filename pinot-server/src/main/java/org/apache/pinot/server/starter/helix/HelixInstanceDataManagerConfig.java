@@ -112,6 +112,12 @@ public class HelixInstanceDataManagerConfig implements InstanceDataManagerConfig
   public static final String UPLOAD_SEGMENT_TO_DEEP_STORE = "segment.upload.to.deep.store";
   public static final boolean DEFAULT_UPLOAD_SEGMENT_TO_DEEP_STORE = false;
 
+  private static final String OFFSET_LAG_METRIC_ENABLED = "realtime.ingestion.offset.lag.metric.enabled";
+  private static final boolean DEFAULT_OFFSET_LAG_METRIC_ENABLED = true;
+  private static final String OFFSET_LAG_METRIC_UPDATE_PERIOD_MS =
+      "realtime.ingestion.offset.lag.metric.update.period.ms";
+  private static final long DEFAULT_OFFSET_LAG_METRIC_UPDATE_PERIOD_MS = 60_000L;
+
   private final static String[] REQUIRED_KEYS = {INSTANCE_ID};
   private static final long DEFAULT_ERROR_CACHE_SIZE = 100L;
   private static final int DEFAULT_DELETED_TABLES_CACHE_TTL_MINUTES = 60;
@@ -316,5 +322,16 @@ public class HelixInstanceDataManagerConfig implements InstanceDataManagerConfig
   @Override
   public boolean isUploadSegmentToDeepStore() {
     return _serverConfig.getProperty(UPLOAD_SEGMENT_TO_DEEP_STORE, DEFAULT_UPLOAD_SEGMENT_TO_DEEP_STORE);
+  }
+
+  @Override
+  public boolean isRealtimeOffsetLagMetricEnabled() {
+    return _serverConfig.getProperty(OFFSET_LAG_METRIC_ENABLED, DEFAULT_OFFSET_LAG_METRIC_ENABLED);
+  }
+
+  @Override
+  public long getRealtimeOffsetLagMetricUpdatePeriodMs() {
+    return _serverConfig.getProperty(OFFSET_LAG_METRIC_UPDATE_PERIOD_MS,
+        DEFAULT_OFFSET_LAG_METRIC_UPDATE_PERIOD_MS);
   }
 }
